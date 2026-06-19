@@ -4,13 +4,32 @@ import { mockSKUs, mockBatches } from '@/data/mockData';
 import { allocateFIFO, deductStock } from '@/utils/fifoEngine';
 import { generateId, calculateExpiryStatus, getSkuTotalStock } from '@/utils/inventoryCalculator';
 
-const STORAGE_KEY = 'inventory-operation-logs';
+const LOGS_KEY = 'inventory-operation-logs';
+const STATE_KEY = 'inventory-state';
+
+const VALID_LOG_TYPES = new Set(['inbound', 'outbound', 'freeze', 'unfreeze']);
+const VALID_LOG_STATUSES = new Set(['success', 'failed']);
+
+function isValidLog(raw: unknown): raw is OperationLog {
+  if (!raw || typeof raw !== 'object') return false;
+  const obj = raw as Record<string, unknown>;
+  return (
+    typeof obj.id === 'string' &&
+    VALID_LOG_TYPES.has(obj.type as string) &&
+    typeof obj.skuId === 'string' &&
+    VALID_LOG_STATUSES.has(obj.status as string) &&
+    typeof obj.message === 'string' &&
+    typeof obj.createdAt === 'string'
+  );
+}
 
 const loadPersistedLogs = (): OperationLog[] => {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(LOGS_KEY);
     if (saved) {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(isValidLog);
     }
   } catch (e) {
     console.warn('Failed to load operation logs from localStorage:', e);
@@ -18,9 +37,35 @@ const loadPersistedLogs = (): OperationLog[] => {
   return [];
 };
 
+interface PersistedState {
+  skus: InventoryState['skus'];
+  batches: InventoryState['batches'];
+}
+
+const loadPersistedState = (fallback: PersistedState): PersistedState => {
+  try {
+    const saved = localStorage.getItem(STATE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (
+        parsed &&
+        Array.isArray(parsed.skus) &&
+        Array.isArray(parsed.batches)
+      ) {
+        return { skus: parsed.skus, batches: parsed.batches };
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load inventory state from localStorage:', e);
+  }
+  return fallback;
+};
+
+const persisted = loadPersistedState({ skus: mockSKUs, batches: mockBatches });
+
 export const useInventoryStore = create<InventoryState>((set, get) => ({
-  skus: mockSKUs,
-  batches: mockBatches,
+  skus: persisted.skus,
+  batches: persisted.batches,
   operationLogs: loadPersistedLogs(),
   alerts: [],
   tempLocks: [],
@@ -294,8 +339,13 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
 useInventoryStore.subscribe((state) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.operationLogs));
+    localStorage.setItem(LOGS_KEY, JSON.stringify(state.operationLogs));
   } catch (e) {
     console.warn('Failed to save operation logs to localStorage:', e);
+  }
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify({ skus: state.skus, batches: state.batches }));
+  } catch (e) {
+    console.warn('Failed to save inventory state to localStorage:', e);
   }
 });
