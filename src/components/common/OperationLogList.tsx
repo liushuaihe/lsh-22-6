@@ -59,9 +59,12 @@ export function OperationLogDrawer() {
 
   const filteredLogs = useMemo(() => {
     return operationLogs.filter((log: OperationLog) => {
-      if (typeFilters.has('inbound') && log.type !== 'inbound') return false;
-      if (typeFilters.has('outbound') && log.type !== 'outbound') return false;
-      if (typeFilters.has('freeze') && log.type !== 'freeze') return false;
+      const typeFilterKeys = ['inbound', 'outbound', 'freeze'] as const;
+      const hasTypeFilter = typeFilterKeys.some(k => typeFilters.has(k));
+      if (hasTypeFilter && !typeFilterKeys.some(k => typeFilters.has(k) && log.type === k)) {
+        return false;
+      }
+
       if (typeFilters.has('failed') && log.status !== 'failed') return false;
 
       if (nameSearch.trim()) {

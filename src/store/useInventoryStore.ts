@@ -4,10 +4,24 @@ import { mockSKUs, mockBatches } from '@/data/mockData';
 import { allocateFIFO, deductStock } from '@/utils/fifoEngine';
 import { generateId, calculateExpiryStatus, getSkuTotalStock } from '@/utils/inventoryCalculator';
 
+const STORAGE_KEY = 'inventory-operation-logs';
+
+const loadPersistedLogs = (): OperationLog[] => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.warn('Failed to load operation logs from localStorage:', e);
+  }
+  return [];
+};
+
 export const useInventoryStore = create<InventoryState>((set, get) => ({
   skus: mockSKUs,
   batches: mockBatches,
-  operationLogs: [],
+  operationLogs: loadPersistedLogs(),
   alerts: [],
   tempLocks: [],
 
@@ -277,3 +291,11 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     set({ alerts: [] });
   }
 }));
+
+useInventoryStore.subscribe((state) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.operationLogs));
+  } catch (e) {
+    console.warn('Failed to save operation logs to localStorage:', e);
+  }
+});
