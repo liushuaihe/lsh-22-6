@@ -1,0 +1,62 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+build
+dist-ssr
+*.local
+.env
+.env.*
+!.env.example
+
+# Caches and generated output
+.cache/
+.parcel-cache/
+.vite/
+coverage/
+tmp/
+temp/
+.temp/
+.tmp/
+.eslintcache
+
+# Tool/session metadata
+.trae/
+
+# Archives and packages
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.gz
+
+# Large binary/media/source artifacts
+*.psd
+*.ai
+*.sketch
+*.fig
+*.mov
+*.mp4
+*.avi
+*.mkv
+*.iso
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
